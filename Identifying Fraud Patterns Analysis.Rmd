@@ -1,0 +1,98 @@
+---
+title: "Identifying Fraud Patterns Analysis"
+author: "Layla Ashour"
+output: html_document
+date: "2024-05-18"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Importing libraries 
+
+```{r }
+library(dplyr)
+library(ggplot2)
+```
+Loading dataset
+```{r}
+raw_data <- read.csv("Data.csv")
+```
+Data Exploration 
+```{r}
+head(raw_data)
+summary(raw_data)
+str(raw_data)
+```
+selected data 
+```{r}
+selected_data <- raw_data %>%
+  select("customer", "age", "gender", "zipcodeOri", "category", "amount", "fraud")
+```
+Data Cleaning & Processing 
+
+no missing data
+removed the '' as it was not the correct format 
+removed the 0 from the age group as that looks like a mistake or could possibly represent NA values.
+removed 0 from the amount because if the amount is 0 its not a valid transaction 
+filterns gender to not include values other than F&M, because thats not relavant 
+
+```{r}
+missing_values <- sum(is.na(selected_data))
+
+unique_gender <- unique(selected_data$gender)
+selected_data$gender <- gsub("'", "",selected_data$gender)
+selected_data$age <- gsub("'", "",selected_data$age)
+selected_data$category <- gsub("'", "",selected_data$category)
+selected_data$zipcodeOri <- gsub("'", "",selected_data$zipcodeOri)
+selected_data <- selected_data[selected_data$age != '0', ]
+selected_data <- selected_data[selected_data$amount != 0, ]
+
+data <- selected_data %>%
+   filter( gender == 'F' | gender == 'M')
+
+```
+Statistics  
+
+```{r}
+fraud_by_gender <- data %>%
+  select(gender,fraud) %>%
+  filter(fraud == 1) %>%
+  group_by(gender)%>%
+  count(gender)
+
+fraud_by_age_group <- data %>%
+  select(age,fraud) %>%
+  filter(fraud == 1) %>%
+  count(age)
+
+```
+
+
+
+```{r}
+values <- fraud_by_gender$n
+labels <- fraud_by_gender$gender
+
+percentages <- round(values / sum(values) * 100) 
+labels_percentages <- paste( percentages, "%", sep = "")
+
+label_mapping <- c("M" = "Male", "F" = "Female")
+fixed_label <- label_mapping[labels]
+  
+colors <- c("blue", "green")
+pie(values, labels = labels_percentages, col = colors, main = "Fraud by Gender") 
+
+legend("topleft", legend = fixed_label, fill = colors)
+```
+```{r}
+
+age_group_mapping <- c("1" = "10", "2" = "20","3" = "30","4" = "40","5" = "50","6" = "60")
+age_labels <- age_group_mapping
+ggplot(fraud_by_age_group, aes(x = age_group_mapping, y = n)) +
+geom_bar(stat = "identity", fill = "blue") +
+  labs(title = "Fraud by Age Group", x = "Age Group", y = "Count")
+```
+
+
